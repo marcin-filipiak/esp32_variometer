@@ -8,10 +8,9 @@
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
-#include <BMP180I2C.h>
-
-#define I2C_ADDRESS 0x77
-BMP180I2C bmp180(I2C_ADDRESS);
+//https://github.com/abishur/ms5x/blob/main/examples/BasicMS5x/BasicMS5x.ino
+#include <MS5x.h>
+MS5x barometer(&Wire);
 
 // Pin głośnika
 #define SPEAKER_PIN 16
@@ -20,7 +19,7 @@ BMP180I2C bmp180(I2C_ADDRESS);
 #define HIGH_TONE_FREQ 2000  // Wysoki dźwięk
 #define LOW_TONE_FREQ 500    // Niski dźwięk
 
-// Tablica do przechowywania ostatnich 3 pomiarów ciśnienia
+// Tablica do przechowywania ostatnich 3 pomiarów ciśnienia w celu określenia trendu
 float pressureQueue[3] = {0, 0, 0};
 
 // Z ilu elementów tablicy będzie obliczany trend
@@ -109,51 +108,21 @@ void setup() {
   }
   delay(2000); // Pauza na 2 sekundy
 
-  if (!bmp180.begin()) {
-    Serial.println("begin() failed. check your BMP180 Interface and I2C Address.");
-    while (1);
-  }
-
+  while(barometer.connect()>0) { // barometer.connect starts wire and attempts to connect to sensor
+		display.print("Check your BMP180 Interface and I2C Address.");
+    display.display();
+    delay(3000); // Pauza na 3 sekundy
+	}
+  
+  display.print("Vario inited...");
+  display.display();
+  delay(3000); // Pauza na 3 sekundy
+  
   // Wyczyszczenie ekranu
   display.clearDisplay();
   display.setTextSize(1);
   display.setTextColor(SSD1306_WHITE);
   display.setCursor(1, 1);
-
-  if (!bmp180.begin()) {
-    display.print("Check your BMP180 Interface and I2C Address.");
-    display.display();
-    delay(3000); // Pauza na 3 sekundy
-    while (1);
-  } else {
-    display.print("Vario inited...");
-    display.display();
-    delay(3000); // Pauza na 3 sekundy
-  }
-
-  // Reset sensora do domyślnych parametrów.
-  bmp180.resetToDefaults();
-
-  // Włączenie trybu ultra wysokiej rozdzielczości dla pomiarów ciśnienia.
-  bmp180.setSamplingMode(BMP180MI::MODE_UHR);
-
-    // Rozpoczęcie pomiaru temperatury
-  if (!bmp180.measureTemperature()) {
-    return;
-  }
-  // Oczekiwanie na zakończenie pomiaru
-  do {
-    delay(100);
-  } while (!bmp180.hasValue());
-
-  // Rozpoczęcie pomiaru ciśnienia
-  if (!bmp180.measurePressure()) {
-    return;
-  }
-  // Oczekiwanie na zakończenie pomiaru
-  do {
-    delay(100);
-  } while (!bmp180.hasValue());
 
   // Ustawienie pinu głośnika jako wyjście
   pinMode(SPEAKER_PIN, OUTPUT);
@@ -166,54 +135,41 @@ void loop() {
   display.setTextSize(1);
   display.setTextColor(SSD1306_WHITE);
 
-  // Rozpoczęcie pomiaru temperatury
-  if (!bmp180.measureTemperature()) {
-    return;
+  barometer.checkUpdates();
+
+  if (barometer.isReady()) { 
+
+          display.setCursor(10, 10);
+          display.print("Temp: " + String(barometer.GetTemp()) + " C");
+
+          float currentPressure = barometer.GetPres() / 100;
+          //float currentPressure = bmp180.getPressure() / 100; // Konwersja na hPa
+          updatePressureQueue(currentPressure, pressureQueue, queueSize);
+
+          display.setCursor(10, 20);
+          display.print("Pres: " + String(currentPressure) + " hPa");
+
+          String trend = analyzeTrend(pressureQueue, queueSize);
+          display.setCursor(10, 30);
+          display.print("Trend: " + trend);
+          // Generowanie dźwięku zależnie od trendu
+          generateSound(trend);
+
+          if (pressureStart == 0.0) pressureStart = barometer.GetPres();
+          // Oblicz różnicę wysokości od startowiska
+
+          display.setCursor(10, 40);
+          float QFE = calculateAltitudeDifference(pressureStart, barometer.GetPres());
+          display.print("QFE: " + String(QFE));
+
+          display.setCursor(10, 50);
+          float QNH = calculateAltitudeDifference(101325.0, barometer.GetPres());
+          display.print("QNH: " + String(QNH));
+
+          display.display();
   }
-  // Oczekiwanie na zakończenie pomiaru
-  do {
-    delay(100);
-  } while (!bmp180.hasValue());
-
-  display.setCursor(10, 10);
-  display.print("Temp: " + String(bmp180.getTemperature()) + " C");
-
-  // Rozpoczęcie pomiaru ciśnienia
-  if (!bmp180.measurePressure()) {
-    return;
-  }
-  // Oczekiwanie na zakończenie pomiaru
-  do {
-    delay(100);
-  } while (!bmp180.hasValue());
-
-  float currentPressure = bmp180.getPressure() / 100; // Konwersja na hPa
-  updatePressureQueue(currentPressure, pressureQueue, queueSize);
-
-  display.setCursor(10, 20);
-  display.print("Pres: " + String(currentPressure) + " hPa");
-
-  String trend = analyzeTrend(pressureQueue, queueSize);
-  display.setCursor(10, 30);
-  display.print("Trend: " + trend);
-  // Generowanie dźwięku zależnie od trendu
-  generateSound(trend);
-
-  if (pressureStart == 0.0) pressureStart = bmp180.getPressure();
-  // Oblicz różnicę wysokości od startowiska
-
-  display.setCursor(10, 40);
-  float QFE = calculateAltitudeDifference(pressureStart, bmp180.getPressure());
-  display.print("QFE: " + String(QFE));
-
-  display.setCursor(10, 50);
-  float QNH = calculateAltitudeDifference(101325.0, bmp180.getPressure());
-  display.print("QNH: " + String(QNH));
-
-  display.display();
 
 
-
-  // Pauza na 0.5 sekundy
-  delay(500);
+  // Pauza na 0.1 sekundy
+  delay(100);
 }
