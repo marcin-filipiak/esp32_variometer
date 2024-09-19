@@ -1,12 +1,12 @@
 # ESP32 Variometer
 
-This project implements a simple variometer using an ESP32, an MS5x series barometer, and an SSD1306 OLED display. The variometer measures pressure to estimate altitude and detects changes in air pressure trends (rising, falling, or stable), providing both visual feedback on the OLED screen and auditory feedback using a speaker.
+This project implements a simple variometer using an ESP32, an MS5x series barometer, and an SSD1306 OLED display. The variometer measures pressure to estimate altitude and detects changes of altitude (rising, falling, or stable), providing both visual feedback on the OLED screen and auditory feedback using a speaker.
 
 ## Features:
 
 Altitude Tracking: Displays both QFE (altitude difference from a start point) and QNH (altitude difference from sea level).
-Pressure Trend Analysis: Detects whether the pressure is rising, falling, or stable, and outputs the result on the OLED display.
-Sound Feedback: Generates high or low tones based on the pressure trend, allowing for intuitive auditory feedback.
+Altitude Trend Analysis: Detects rising, falling, or stable, and outputs the result on the OLED display.
+Sound Feedback: Generates high or low tones based on the altitude trend, allowing for intuitive auditory feedback.
 
 ## Hardware Required:
 
@@ -26,5 +26,5 @@ Sound Feedback: Generates high or low tones based on the pressure trend, allowin
 
 Initialization: The program initializes the barometer and OLED display.
 Data Collection: Continuously measures temperature, pressure, and calculates altitude.
-Pressure Trend: Analyzes recent pressure changes and displays the trend.
-Sound Alerts: Produces audio tones to signal rising or falling trends.
+Altitude Trend: Analyzes recent altitude changes and displays the trend.
+Sound Alerts: Produces audio tones to signal altitude rising or falling trends.
