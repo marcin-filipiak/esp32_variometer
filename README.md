@@ -1,4 +1,4 @@
-# Vario-BMP180 Project
+# ESP32 Variometer
 
 This project implements a simple variometer using an ESP32, an MS5x series barometer, and an SSD1306 OLED display. The variometer measures pressure to estimate altitude and detects changes in air pressure trends (rising, falling, or stable), providing both visual feedback on the OLED screen and auditory feedback using a speaker.
 
